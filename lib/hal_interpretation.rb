@@ -3,44 +3,15 @@ require "hana"
 require "multi_json"
 require "hal-client"
 
-InvalidRepresentationError = Class.new(StandardError)
-
+# Declarative interpretation of HAL documents into ActiveModel style
+# objects.
 module HalInterpretation
-  module DSL
-    def item_class(klass)
-      define_method(:item_class) do
-        klass
-      end
-    end
 
-    def extract(attr_name,from: "/#{attr_name}")
-      extractors << Extractor.new(attr: attr_name, location: from)
-    end
-  end
-
-  module ClassMethods
-    def new_from_json(json)
-      self.new HalClient::Representation.new(parsed_json: MultiJson.load(json)),
-               location: "/"
-
-    rescue MultiJson::ParseError => err
-      fail InvalidRepresentationError, "Parse error: " + err.message
-    end
-
-    def extractors
-      @extractors ||= []
-    end
-
-    def extractor_for(attr_name)
-      extractors.find {|it| it.attr == attr_name }
-    end
-  end
-
-  def self.included(klass)
-    klass.extend ClassMethods
-    klass.extend DSL
-  end
-
+  # Returns array of models created from the HAL representation we are
+  # interpreting.
+  #
+  # Raises InvalidRepresentationError if any of the models are invalid
+  #   or the representation is not a HAL document.
   def items
     (fail InvalidRepresentationError.new(problems)) if problems.any?
 
@@ -56,12 +27,6 @@ module HalInterpretation
 
   extend Forwardable
   def_delegators "self.class", :extractors, :extractor_for
-
-  def extractor_for(*args)
-    self.class.extractor_for(*args)
-  end
-
-
 
   protected
 
@@ -80,109 +45,59 @@ module HalInterpretation
             .related('item')
             .each_with_index
             .map{ |item_repr, idx|
-          Single.new(item_repr,
-                     location: location + "_embedded/item/#{idx}/",
-                     interpreter: self) }
+          ItemInterpreter.new(item_repr,
+                              location: location + "_embedded/item/#{idx}/",
+                              interpreter: self) }
         else
-          [Single.new(repr, location: location, interpreter: self)]
+          [ItemInterpreter.new(repr, location: location, interpreter: self)]
         end
       end
   end
 
+  # Back stop method to be overridden by individual interpreters.
   def item_class
-    fail NotImplementedError, "item_class must be defined by each interpreter class"
+    fail NotImplementedError, "interpreter classes must call `item_class <model class>` in the class defintion"
+  end
+
+  module ClassMethods
+    # Returns new interpreter for the provided JSON document.
+    #
+    # Raises HalInterpretation::InvalidRepresentationError if the
+    #   provided JSON document is not parseable
+    def new_from_json(json)
+      self.new HalClient::Representation.new(parsed_json: MultiJson.load(json)),
+               location: "/"
+
+    rescue MultiJson::ParseError => err
+      fail InvalidRepresentationError, "Parse error: " + err.message
+    end
+
+    # internal stuff
+
+    # Returns collection of attribute extractors.
+    def extractors
+      @extractors ||= []
+    end
+
+    # Returns the attribute extractor for the specified attribute.
+    def extractor_for(attr_name)
+      extractors.find {|it| it.attr == attr_name }
+    end
   end
 
 
-  class Single
-    def initialize(a_representation, location:, interpreter:)
-      @repr = a_representation
-      @location = location
-      @problems = []
-      @interpreter = interpreter
-    end
-
-    def items
-      interpret unless done?
-
-      (raise InvalidRepresentationError.new problems) if problems.any?
-
-      @items
-    end
-
-    def problems
-      interpret unless done?
-
-      @problems
-    end
-
-    protected
-
-    extend Forwardable
-
-    def_delegators :interpreter, :extractors, :extractor_for, :item_class
-
-    attr_reader :repr, :location, :interpreter
-
-    def done?
-      !@items.nil? || @problems.any?
-    end
-
-    def interpret
-      new_item = item_class.new do |it|
-        e = extractors
-        e.each do |an_extractor|
-          @problems += an_extractor.extract(from: repr, to: it)
-            .map {|msg| "#{json_path_for an_extractor.attr} #{msg}" }
-        end
-      end
-
-      apply_validations(new_item)
-
-      return if @problems.any?
-
-      @items = [new_item]
-    end
-
-    def apply_validations(an_item)
-      an_item.valid?
-      an_item.errors.each do |attr, msg|
-        @problems << "#{json_path_for attr} #{msg}"
-      end
-    end
-
-    def json_path_for(attr)
-      json_pointer_join(location, extractor_for(attr).location)
-    end
-
-    def json_pointer_join(head, tail)
-      head = head[0..-2] if head.end_with?("/")
-      tail = tail[1..-1] if tail.start_with?("/")
-
-      head + "/" + tail
-    end
+  def self.included(klass)
+    klass.extend ClassMethods
+    klass.extend Dsl
   end
 
-  class Extractor
-    def initialize(attr:, location: "/#{attr}")
-      @attr = attr
-      @location = location
-      @pointer = Hana::Pointer.new(location)
-    end
 
-    def extract(from:, to:)
-      to.send "#{attr}=", pointer.eval(from)
+  autoload :Dsl, "hal_interpretation/dsl"
+  autoload :ItemInterpreter, "hal_interpretation/item_interpreter"
+  autoload :Extractor, "hal_interpretation/extractor"
+  autoload :Error, "hal_interpretation/errors"
+  autoload :InvalidRepresentationError, "hal_interpretation/errors"
 
-      []
-    rescue => err
-      [err.message]
-    end
-
-    attr_reader :attr, :location
-
-    protected
-    attr_reader :pointer
-  end
 end
 
 require "hal_interpretation/version"

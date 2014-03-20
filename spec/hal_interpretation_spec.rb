@@ -6,10 +6,10 @@ require "rspec/collection_matchers"
 
 describe HalInterpretation do
   subject(:interpreter_class) {
-    myself = self
+    test_item_class = self.test_item_class
     Class.new do
       include HalInterpretation
-      item_class myself.test_item_class
+      item_class test_item_class
       extract :name
       extract :latitude, from: "/geo/latitude"
     end }
@@ -66,7 +66,8 @@ describe HalInterpretation do
       }
     JSON
 
-    specify { expect{interpreter.items}.to raise_exception InvalidRepresentationError, /\/name\b/ }
+    specify { expect{interpreter.items}
+        .to raise_exception HalInterpretation::InvalidRepresentationError, /\/name\b/ }
     specify { expect(interpreter.problems)
         .to include matching(%r(/name\b)).and(match(/\bblank\b/i))  }
     specify { expect(interpreter.problems)
@@ -84,7 +85,8 @@ describe HalInterpretation do
       }
     JSON
 
-    specify { expect{interpreter.items}.to raise_exception InvalidRepresentationError, /\/name\b/ }
+    specify { expect{interpreter.items}
+        .to raise_exception HalInterpretation::InvalidRepresentationError, /\/name\b/ }
     specify { expect(interpreter.problems)
         .to include matching(%r(/_embedded/item/0/name\b)).and(match(/\bblank\b/i))  }
     specify { expect(interpreter.problems)
@@ -98,7 +100,8 @@ describe HalInterpretation do
       { "name": "nowhere" }
     JSON
 
-    specify { expect{interpreter.items}.to raise_exception InvalidRepresentationError}
+    specify { expect{interpreter.items}
+        .to raise_exception HalInterpretation::InvalidRepresentationError}
     specify { expect(interpreter.problems)
         .to include matching(%r(/geo/latitude\b)).and(match(/\bblank\b/i))  }
   end
@@ -108,7 +111,7 @@ describe HalInterpretation do
     let(:non_json_doc) { "what's json" }
 
     specify { expect{interpreter_class.new_from_json(non_json_doc)}
-        .to raise_exception InvalidRepresentationError, /\bparse\b/i }
+        .to raise_exception HalInterpretation::InvalidRepresentationError, /\bparse\b/i }
   end
 
   let(:interpreter) { interpreter_class.new_from_json(json_doc) }
