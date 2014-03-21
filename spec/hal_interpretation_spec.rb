@@ -1,7 +1,6 @@
 require_relative "spec_helper"
 require "active_support"
 require "active_model"
-require "hal_interpretation"
 require "rspec/collection_matchers"
 
 describe HalInterpretation do
@@ -67,7 +66,15 @@ describe HalInterpretation do
     JSON
 
     specify { expect{interpreter.items}
-        .to raise_exception HalInterpretation::InvalidRepresentationError, /\/name\b/ }
+        .to raise_exception HalInterpretation::InvalidRepresentationError }
+    context "raised error" do
+      subject(:error) { interpreter.items rescue $! }
+
+      specify { expect(error.problems)
+          .to include matching matching(%r(/geo/latitude\b)).and(match(/\binvalid value\b/i)) }
+      specify { expect(error.problems)
+          .to include matching(%r(/name\b)).and(match(/\bblank\b/i))  }
+    end
     specify { expect(interpreter.problems)
         .to include matching(%r(/name\b)).and(match(/\bblank\b/i))  }
     specify { expect(interpreter.problems)
@@ -86,7 +93,7 @@ describe HalInterpretation do
     JSON
 
     specify { expect{interpreter.items}
-        .to raise_exception HalInterpretation::InvalidRepresentationError, /\/name\b/ }
+        .to raise_exception HalInterpretation::InvalidRepresentationError }
     specify { expect(interpreter.problems)
         .to include matching(%r(/_embedded/item/0/name\b)).and(match(/\bblank\b/i))  }
     specify { expect(interpreter.problems)
