@@ -1,3 +1,5 @@
+require 'hana'
+
 module HalInterpretation
   class Extractor
     def initialize(attr:, location: "/#{attr}")

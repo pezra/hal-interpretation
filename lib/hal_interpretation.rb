@@ -1,5 +1,4 @@
 require "forwardable"
-require "hana"
 require "multi_json"
 require "hal-client"
 

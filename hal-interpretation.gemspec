@@ -18,14 +18,16 @@ Gem::Specification.new do |spec|
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "hal-client", ["~>2.2", ">2.2.0"]
-  spec.add_dependency "hana"
-  spec.add_dependency "multi_json"
+  spec.required_ruby_version = "~>2.1"
+
+  spec.add_dependency "hal-client", "~>2.2"
+  spec.add_dependency "hana", "~>1.2"
+  spec.add_dependency "multi_json", "~>1.9"
 
   spec.add_development_dependency "bundler", "~> 1.5"
-  spec.add_development_dependency "rake"
+  spec.add_development_dependency "rake", "~>10.1"
   spec.add_development_dependency "rspec", "~>3.0.0.beta"
-  spec.add_development_dependency "rspec-collection_matchers"
-  spec.add_development_dependency "activemodel"
-  spec.add_development_dependency "activesupport"
+  spec.add_development_dependency "rspec-collection_matchers", "~>0.0.3"
+  spec.add_development_dependency "activemodel", "~>4.0"
+  spec.add_development_dependency "activesupport", "~>4.0"
 end
