@@ -67,7 +67,7 @@ Or install it yourself as:
 
 ## Contributing
 
-1. Fork it ( http://github.com/<my-github-username>/hal-interpretation/fork )
+1. Fork it ( http://github.com/pezra/hal-interpretation/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Make your improvement
 4. Update the version following [semver][] rules
