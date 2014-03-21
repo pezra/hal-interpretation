@@ -1,6 +1,6 @@
 # HalInterpretation
 
-Build ActiveRecord models from HAL documents with good error messages
+Build ActiveModels from HAL documents with good error messages
 for validity issues.
 
 ## Usage
