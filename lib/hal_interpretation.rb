@@ -29,9 +29,12 @@ module HalInterpretation
 
   protected
 
-  def initialize(a_representation, location:)
+  # opts
+  #   :location - The json path of `a_representation` in the
+  #     complete document
+  def initialize(a_representation, opts)
     @repr = a_representation
-    @location = location
+    @location = opts.fetch(:location) { raise ArgumentError, "location is required" }
   end
 
   attr_reader :repr, :location

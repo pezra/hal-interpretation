@@ -1,10 +1,13 @@
 module HalInterpretation
   class ItemInterpreter
-    def initialize(a_representation, location:, interpreter:)
+    # opts - named args
+    #   :location - 
+    #   :interpreter - 
+    def initialize(a_representation, opts)
       @repr = a_representation
-      @location = location
+      @location = opts.fetch(:location) { fail ArgumentError, "location is required" }
       @problems = []
-      @interpreter = interpreter
+      @interpreter = opts.fetch(:interpreter) { fail ArgumentError, "interpreter is required" }
     end
 
     def items
