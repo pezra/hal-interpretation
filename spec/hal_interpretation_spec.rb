@@ -11,6 +11,7 @@ describe HalInterpretation do
       item_class test_item_class
       extract :name
       extract :latitude, from: "/geo/latitude"
+      extract :up, with: ->(hal_repr){hal_repr.related_hrefs("up").first}, from: "/_links/up"
     end }
 
   context "valid single item" do
@@ -19,12 +20,16 @@ describe HalInterpretation do
         ,"geo": {
           "latitude": 39.1
         }
+        ,"_links": {
+          "up": {"href": "/foo"}
+        }
       }
     JSON
 
     specify { expect(interpreter.items).to have(1).item }
     specify { expect(interpreter.items.first.name).to eq "foo" }
     specify { expect(interpreter.items.first.latitude).to eq 39.1 }
+    specify { expect(interpreter.items.first.up).to eq "/foo" }
     specify { expect(interpreter.problems).to be_empty }
   end
 
@@ -35,11 +40,13 @@ describe HalInterpretation do
                       ,"geo": {
                         "latitude": 39.1
                       }
+                      ,"_links": { "up": {"href": "/foo"} }
                     }
                     ,{ "name": "bar"
                       ,"geo": {
                         "latitude": 39.2
                       }
+                      ,"_links": { "up": {"href": "/bar"} }
                     }]
         }
       }
@@ -126,7 +133,7 @@ describe HalInterpretation do
   let(:test_item_class) { Class.new do
       include ActiveModel::Validations
 
-      attr_accessor :name, :latitude
+      attr_accessor :name, :latitude, :up
 
       def initialize
         yield self
