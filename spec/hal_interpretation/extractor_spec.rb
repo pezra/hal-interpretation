@@ -6,6 +6,9 @@ describe HalInterpretation::Extractor do
       .not_to raise_error }
     specify { expect{described_class.new(attr: "first_name", with: ->(hal_repr){ "bob" })}
       .not_to raise_error }
+    specify { expect{described_class.new(attr: "first_name", location: "/firstName",
+                                         coercion: ->(){ 42 })}
+      .not_to raise_error }
   end
 
   context "location based" do
@@ -34,9 +37,19 @@ describe HalInterpretation::Extractor do
     end
   end
 
-  let(:target) { Struct.new(:first_name, :parent).new }
+  context "coercion" do
+    subject(:extractor) { described_class.new(attr: "bday",
+                                              coercion: ->(val){ Time.parse(val) } ) }
+    before do extractor.extract(from: source, to: target) end
+
+    specify { expect(target.bday).to eq Time.utc(2013,10,10,12,13,14) }
+  end
+
+
+  let(:target) { Struct.new(:first_name, :bday, :parent).new }
   let(:source) { HalClient::Representation.new(parsed_json: {
                                                  "firstName" => "Alice",
+                                                 "bday" => "2013-10-10T12:13:14Z",
                                                  "_links" => {
                                                    "up" => { "href" => "http://foo" }}}) }
 end
