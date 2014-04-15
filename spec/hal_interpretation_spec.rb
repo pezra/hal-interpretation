@@ -12,11 +12,13 @@ describe HalInterpretation do
       extract :name
       extract :latitude, from: "/geo/latitude"
       extract :up, with: ->(hal_repr){hal_repr.related_hrefs("up").first}, from: "/_links/up"
+      extract :bday, coercion: ->(val){ Time.parse(val) }
     end }
 
   context "valid single item" do
     let(:json_doc) { <<-JSON }
       { "name": "foo"
+        ,"bday": "2013-12-11T10:09:08Z"
         ,"geo": {
           "latitude": 39.1
         }
@@ -30,6 +32,7 @@ describe HalInterpretation do
     specify { expect(interpreter.items.first.name).to eq "foo" }
     specify { expect(interpreter.items.first.latitude).to eq 39.1 }
     specify { expect(interpreter.items.first.up).to eq "/foo" }
+    specify { expect(interpreter.items.first.bday).to eq Time.utc(2013,12,11,10,9,8) }
     specify { expect(interpreter.problems).to be_empty }
   end
 
@@ -37,12 +40,14 @@ describe HalInterpretation do
     let(:json_doc) { <<-JSON }
       { "_embedded": {
            "item": [{ "name": "foo"
+                      ,"bday": "2013-12-11T10:09:08Z"
                       ,"geo": {
                         "latitude": 39.1
                       }
                       ,"_links": { "up": {"href": "/foo"} }
                     }
                     ,{ "name": "bar"
+                      ,"bday": "2013-12-11T10:09:08Z"
                       ,"geo": {
                         "latitude": 39.2
                       }
@@ -69,6 +74,7 @@ describe HalInterpretation do
       { "geo": {
           "latitude": "hello"
         }
+        ,"bday": "yesterday"
       }
     JSON
 
@@ -86,6 +92,8 @@ describe HalInterpretation do
         .to include matching(%r(/name\b)).and(match(/\bblank\b/i))  }
     specify { expect(interpreter.problems)
         .to include matching(%r(/geo/latitude\b)).and(match(/\binvalid value\b/i))  }
+    specify { expect(interpreter.problems)
+        .to include matching(%r(/bday\b)).and(match(/\bno time\b/i))  }
   end
 
   context "collection w/ invalid attributes" do
@@ -133,7 +141,7 @@ describe HalInterpretation do
   let(:test_item_class) { Class.new do
       include ActiveModel::Validations
 
-      attr_accessor :name, :latitude, :up
+      attr_accessor :name, :latitude, :up, :bday
 
       def initialize
         yield self

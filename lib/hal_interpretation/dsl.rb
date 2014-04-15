@@ -19,12 +19,16 @@ module HalInterpretation
     #
     #   :with - Callable that can extract the value when
     #     passed a HalClient::Representation of the item.
+    #
+    #   :coercion - callable with which the raw value should be
+    #     transformed before being stored.
     def extract(attr_name, opts={})
       extractor_opts = {
         attr: attr_name,
         location: opts.fetch(:from) { "/#{attr_name}" }
       }
       extractor_opts[:extraction_proc] = opts.fetch(:with) if opts.key? :with
+      extractor_opts[:coercion] = opts[:coercion] if opts.key? :coercion
 
       extractors << Extractor.new(extractor_opts)
     end
