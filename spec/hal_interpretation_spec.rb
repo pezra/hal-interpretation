@@ -13,6 +13,16 @@ describe HalInterpretation do
       extract :latitude, from: "/geo/latitude"
       extract :up, with: ->(hal_repr){hal_repr.related_hrefs("up").first}, from: "/_links/up"
       extract :bday, coercion: ->(val){ Time.parse(val) }
+      extract :seq, with: ->(_) { next_seq_num }
+
+      def initialize(*args)
+        @cur_seq_num = 0
+        super
+      end
+
+      def next_seq_num
+        @cur_seq_num += 1
+      end
     end }
 
   context "valid single item" do
@@ -33,7 +43,8 @@ describe HalInterpretation do
     specify { expect(interpreter.items.first.latitude).to eq 39.1 }
     specify { expect(interpreter.items.first.up).to eq "/foo" }
     specify { expect(interpreter.items.first.bday).to eq Time.utc(2013,12,11,10,9,8) }
-    specify { expect(interpreter.problems).to be_empty }
+    specify { expect(interpreter.items.first.seq).to eq 1 }
+      specify { expect(interpreter.problems).to be_empty }
   end
 
   context "valid collection" do
@@ -61,6 +72,8 @@ describe HalInterpretation do
     specify { expect(interpreter.items).to have(2).items }
     specify { expect(interpreter.items).to include item_named "foo" }
     specify { expect(interpreter.items).to include item_named "bar" }
+    specify { expect(interpreter.items[0].seq).to eq 1 }
+    specify { expect(interpreter.items[1].seq).to eq 2 }
 
     matcher :item_named do |expected_name|
       match do |obj|
@@ -141,7 +154,7 @@ describe HalInterpretation do
   let(:test_item_class) { Class.new do
       include ActiveModel::Validations
 
-      attr_accessor :name, :latitude, :up, :bday
+      attr_accessor :name, :latitude, :up, :bday, :seq
 
       def initialize
         yield self
