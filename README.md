@@ -19,6 +19,18 @@ class UserHalInterpreter
 
   extract :name
   extract :address_line, from: "address/line1"
+  extract :seq, with: ->(_hal_repr) { next_seq_num }
+  extract :birthday, coercion: ->(date_str) { Date.iso8601(date_str) } 
+
+  def initialize
+    @cur_seq_num = 0
+  end
+
+  protected
+
+  def next_seq_num
+    @cur_seq_num += 1
+  end
 end
 ```
 
