@@ -37,6 +37,25 @@ describe HalInterpretation::Extractor do
     end
   end
 
+  context "context dependent lambda based" do
+    subject(:extractor) { described_class
+        .new(attr: "seq", location: "/seq", extraction_proc:
+             ->(hal_repr) { self.count_so_far }) }
+
+    specify { expect{
+        extractor.extract(from: source, to: target, context: interpreter)
+      }.not_to raise_error }
+
+
+    context "after extraction" do
+      before do extractor.extract(from: source, to: target, context: interpreter) end
+
+      specify { expect(target.seq).to eq 42 }
+    end
+
+    let(:interpreter) { double(:interpreter, count_so_far: 42) }
+  end
+
   context "coercion" do
     subject(:extractor) { described_class.new(attr: "bday",
                                               coercion: ->(val){ Time.parse(val) } ) }
@@ -46,7 +65,7 @@ describe HalInterpretation::Extractor do
   end
 
 
-  let(:target) { Struct.new(:first_name, :bday, :parent).new }
+  let(:target) { Struct.new(:first_name, :bday, :parent, :seq).new }
   let(:source) { HalClient::Representation.new(parsed_json: {
                                                  "firstName" => "Alice",
                                                  "bday" => "2013-10-10T12:13:14Z",

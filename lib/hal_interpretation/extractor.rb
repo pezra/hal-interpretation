@@ -24,14 +24,22 @@ module HalInterpretation
 
     # opts - named args
     #   :from - The HalRepresentation from which to extract attribute.
+    #
     #   :to - The model that we are extracting
+    #
+    #   :context - The context(usually a HalInterpreter) in which to
+    #     execute the extraction
     #
     # Returns any problems encountered.
     def extract(opts)
       from = opts.fetch(:from) { fail ArgumentError, "from is required" }
       to = opts.fetch(:to) { fail ArgumentError, "to is required" }
+      context = opts.fetch(:context, self)
 
-      to.send "#{attr}=", value_coercion.call(fetcher.call(from))
+      raw_val = context.instance_exec from, &fetcher
+      val = context.instance_exec raw_val, &value_coercion
+
+      to.public_send "#{attr}=", val
 
       []
     rescue => err

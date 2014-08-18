@@ -40,7 +40,7 @@ module HalInterpretation
       new_item = item_class.new do |it|
         e = extractors
         e.each do |an_extractor|
-          @problems += an_extractor.extract(from: repr, to: it)
+          @problems += an_extractor.extract(from: repr, to: it, context: interpreter)
             .map {|msg| "#{json_path_for an_extractor.attr} #{msg}" }
         end
       end
