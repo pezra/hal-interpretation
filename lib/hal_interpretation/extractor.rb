@@ -37,6 +37,8 @@ module HalInterpretation
       context = opts.fetch(:context, self)
 
       raw_val = context.instance_exec from, &fetcher
+      return [] unless raw_val
+
       val = context.instance_exec raw_val, &value_coercion
 
       to.public_send "#{attr}=", val

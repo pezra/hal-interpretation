@@ -54,13 +54,23 @@ module HalInterpretation
 
     def apply_validations(an_item)
       an_item.valid?
+
       an_item.errors.each do |attr, msg|
-        @problems << "#{json_path_for attr} #{msg}"
+        leader = begin
+                   json_path_for attr
+                 rescue KeyError
+                   "#{attr} [which is not directly extracted from JSON]"
+                 end
+
+        @problems << leader + " " + msg
       end
     end
 
     def json_path_for(attr)
-      json_pointer_join(location, extractor_for(attr).location)
+      extractor = extractor_for(attr)
+      raise KeyError unless extractor
+
+      json_pointer_join(location, extractor.location)
     end
 
     def json_pointer_join(head, tail)

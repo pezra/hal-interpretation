@@ -64,9 +64,26 @@ describe HalInterpretation::Extractor do
     specify { expect(target.bday).to eq Time.utc(2013,10,10,12,13,14) }
   end
 
+  context "basic attr" do
+    subject(:extractor) { described_class.new(attr: "age") }
 
-  let(:target) { Struct.new(:first_name, :bday, :parent, :seq).new }
+    before do extractor.extract(from: source, to: target) end
+
+    specify { expect(target.age).to eq 1 }
+  end
+
+  context "missing attr" do
+    subject(:extractor) { described_class.new(attr: "seq") }
+
+    before do extractor.extract(from: source, to: target) end
+
+    specify { expect(target.seq).to be_nil }
+  end
+
+
+  let(:target) { Struct.new(:first_name, :bday, :parent, :seq, :age).new }
   let(:source) { HalClient::Representation.new(parsed_json: {
+                                                 "age" => 1,
                                                  "firstName" => "Alice",
                                                  "bday" => "2013-10-10T12:13:14Z",
                                                  "_links" => {

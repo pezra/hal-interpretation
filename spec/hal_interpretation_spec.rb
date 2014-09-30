@@ -44,7 +44,7 @@ describe HalInterpretation do
     specify { expect(interpreter.items.first.up).to eq "/foo" }
     specify { expect(interpreter.items.first.bday).to eq Time.utc(2013,12,11,10,9,8) }
     specify { expect(interpreter.items.first.seq).to eq 1 }
-      specify { expect(interpreter.problems).to be_empty }
+    specify { expect(interpreter.problems).to be_empty }
   end
 
   context "valid collection" do
@@ -141,6 +141,42 @@ describe HalInterpretation do
         .to include matching(%r(/geo/latitude\b)).and(match(/\bblank\b/i))  }
   end
 
+  context "missing non-required member" do
+    let(:json_doc) { <<-JSON }
+      { "name": "nowhere"
+        ,"geo": {
+          "latitude": 13.12
+        }
+        ,"_links": {
+          "up": { "href": "http://example.com/" }
+        }
+      }
+    JSON
+
+    specify { expect(interpreter.problems).to be_empty }
+  end
+
+  context "validation failure on unmapped attr" do
+    let(:json_doc) { <<-JSON }
+      { "name": "nowhere"
+        ,"geo": {
+          "latitude": 13.12
+        }
+        ,"_links": {
+          "up": { "href": "http://example.com/" }
+        }
+      }
+    JSON
+
+    before do
+      test_item_class.class_eval "validates :hair, presence: true"
+    end
+
+    specify { expect{interpreter.items}
+        .to raise_exception HalInterpretation::InvalidRepresentationError}
+    specify { expect(interpreter.problems)
+        .to include matching(/hair/).and(match(/\bblank\b/i))  }
+  end
 
   context "non-json doc" do
     let(:non_json_doc) { "what's json" }
@@ -154,7 +190,7 @@ describe HalInterpretation do
   let(:test_item_class) { Class.new do
       include ActiveModel::Validations
 
-      attr_accessor :name, :latitude, :up, :bday, :seq
+      attr_accessor :name, :latitude, :up, :bday, :seq, :hair
 
       def initialize
         yield self
