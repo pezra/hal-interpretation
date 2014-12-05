@@ -6,6 +6,11 @@ require "hal-client"
 # objects.
 module HalInterpretation
 
+  # Declares that this interpreter should only update `an_item`.
+  def only_update(an_item)
+    @item_to_update = an_item
+  end
+
   # Returns array of models created from the HAL representation we are
   # interpreting.
   #
@@ -14,7 +19,17 @@ module HalInterpretation
   def items
     (fail InvalidRepresentationError.new(problems)) if problems.any?
 
-    @observations ||= interpreters.flat_map(&:items)
+    @items ||= interpreters.flat_map(&:items)
+  end
+
+  # Returns the single item interpreted.
+  #
+  # Raises InvalidRepresentationError if more than one item was found.
+  def item
+    (fail InvalidRepresentationError, "More than one representation found") if
+      items.size > 1
+
+    items.first
   end
 
   # Returns array of problems messages, or empty array if there are
@@ -26,6 +41,17 @@ module HalInterpretation
 
   extend Forwardable
   def_delegators "self.class", :extractors, :extractor_for
+
+  # Internal: builds and returns items that should be use interpreted
+  # into.
+  def new_item(&blk)
+    if item_to_update
+      yield item_to_update
+      item_to_update
+    else
+      item_class.new(&blk)
+    end
+  end
 
   protected
 
@@ -54,12 +80,16 @@ module HalInterpretation
           [ItemInterpreter.new(repr, location: location, interpreter: self)]
         end
       end
+      .tap {|is| raise(HalInterpretation::InvalidRepresentationError,
+                       "Too many representations") if item_to_update && is.size > 1 }
   end
 
   # Back stop method to be overridden by individual interpreters.
   def item_class
     fail NotImplementedError, "interpreter classes must call `item_class <model class>` in the class defintion"
   end
+
+  attr_reader :item_to_update
 
   module ClassMethods
     # Returns new interpreter for the provided JSON document.

@@ -34,6 +34,8 @@ class UserHalInterpreter
 end
 ```
 
+#### Create
+
 To interpret a HAL document simply create a new interpreter from the
 JSON document to interpret and then call its `#items` method.
 
@@ -42,6 +44,8 @@ class Users < ApplicationController
   def create
     @users = UserHalInterpreter.new_from_json(request.raw_post).items
 
+    @users.each(&:save!)
+
   rescue HalInterpretation::InvalidRepresentationError => err
     render template: "shared/error", status: 422, locals: { problems: err.problems }
   end
@@ -49,6 +53,27 @@ end
 ```
 
 The `items` method returns an `Enumerable` of valid `item_class` objects.
+
+#### Update
+
+To update and existing record
+
+```ruby
+
+class Users < ApplicationController
+  def update
+    existing_user = User.find(params[:id])
+
+    @user = UserHalInterpreter.new_from_json(request.raw_post).only_update(existing_user)
+              .item
+
+    @user.save!
+
+  rescue HalInterpretation::InvalidRepresentationError => err
+    render template: "shared/error", status: 422, locals: { problems: err.problems }
+  end
+end
+```
 
 ### Errors
 
