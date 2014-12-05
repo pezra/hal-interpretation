@@ -28,7 +28,7 @@ module HalInterpretation
 
     extend Forwardable
 
-    def_delegators :interpreter, :extractors, :extractor_for, :item_class
+    def_delegators :interpreter, :extractors, :extractor_for
 
     attr_reader :repr, :location, :interpreter
 
@@ -37,7 +37,7 @@ module HalInterpretation
     end
 
     def interpret
-      new_item = item_class.new do |it|
+      new_item = interpreter.new_item do |it|
         e = extractors
         e.each do |an_extractor|
           @problems += an_extractor.extract(from: repr, to: it, context: interpreter)

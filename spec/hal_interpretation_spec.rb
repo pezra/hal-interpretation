@@ -39,12 +39,29 @@ describe HalInterpretation do
     JSON
 
     specify { expect(interpreter.items).to have(1).item }
-    specify { expect(interpreter.items.first.name).to eq "foo" }
-    specify { expect(interpreter.items.first.latitude).to eq 39.1 }
-    specify { expect(interpreter.items.first.up).to eq "/foo" }
-    specify { expect(interpreter.items.first.bday).to eq Time.utc(2013,12,11,10,9,8) }
-    specify { expect(interpreter.items.first.seq).to eq 1 }
+    specify { expect(interpreter.item).to be interpreter.items.first }
+    specify { expect(interpreter.item.name).to eq "foo" }
+    specify { expect(interpreter.item.latitude).to eq 39.1 }
+    specify { expect(interpreter.item.up).to eq "/foo" }
+    specify { expect(interpreter.item.bday).to eq Time.utc(2013,12,11,10,9,8) }
+    specify { expect(interpreter.item.seq).to eq 1 }
     specify { expect(interpreter.problems).to be_empty }
+
+    context "for update" do
+      let(:existing) { test_item_class.new do |it|
+                         it.name = "foo"
+                         it.latitude = 40
+                       end }
+
+      before do interpreter.only_update(existing) end
+
+      specify { expect(interpreter.items).to have(1).item }
+      specify { expect(interpreter.item).to be interpreter.items.first }
+      specify { expect(interpreter.item).to eq existing }
+      specify { expect(interpreter.item.name).to eq "foo" }
+      specify { expect(interpreter.item.latitude).to eq 39.1 }
+      specify { expect(interpreter.item.bday).to eq Time.utc(2013,12,11,10,9,8) }
+    end
   end
 
   context "valid collection" do
@@ -74,6 +91,9 @@ describe HalInterpretation do
     specify { expect(interpreter.items).to include item_named "bar" }
     specify { expect(interpreter.items[0].seq).to eq 1 }
     specify { expect(interpreter.items[1].seq).to eq 2 }
+
+    specify { expect{interpreter.item}
+              .to raise_error HalInterpretation::InvalidRepresentationError }
 
     matcher :item_named do |expected_name|
       match do |obj|
