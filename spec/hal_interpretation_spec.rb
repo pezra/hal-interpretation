@@ -25,6 +25,10 @@ describe HalInterpretation do
       end
     end }
 
+  let(:interpreter) { interpreter_class.new_from_json(json_doc) }
+
+  specify { expect(interpreter.only_update(:anything)).to eq interpreter }
+
   context "valid single item" do
     let(:json_doc) { <<-JSON }
       { "name": "foo"
@@ -205,7 +209,18 @@ describe HalInterpretation do
         .to raise_exception HalInterpretation::InvalidRepresentationError, /\bparse\b/i }
   end
 
-  let(:interpreter) { interpreter_class.new_from_json(json_doc) }
+  # default
+  let(:json_doc) { <<-JSON }
+      { "name": "foo"
+        ,"bday": "2013-12-11T10:09:08Z"
+        ,"geo": {
+          "latitude": 39.1
+        }
+        ,"_links": {
+          "up": {"href": "/foo"}
+        }
+      }
+    JSON
 
   let(:test_item_class) { Class.new do
       include ActiveModel::Validations

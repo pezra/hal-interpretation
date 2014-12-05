@@ -9,6 +9,8 @@ module HalInterpretation
   # Declares that this interpreter should only update `an_item`.
   def only_update(an_item)
     @item_to_update = an_item
+
+    return self
   end
 
   # Returns array of models created from the HAL representation we are
