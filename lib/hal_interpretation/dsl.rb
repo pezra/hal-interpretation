@@ -34,7 +34,8 @@ module HalInterpretation
     end
 
     # Declare that an attribute should be extracted the HAL document's
-    # links where only one instance of that link type is legal.
+    # links (or embeddeds) where only one instance of that link type
+    # is legal.
     #
     # attr_name - name of the attribute on the model to extract
     #
@@ -74,7 +75,7 @@ module HalInterpretation
     end
 
     # Declare that an attribute should be extracted the HAL document's
-    # links.
+    # links (or embeddeds).
     #
     # attr_name - name of the attribute on the model to extract
     #

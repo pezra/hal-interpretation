@@ -35,11 +35,11 @@ class UserHalInterpreter
   # Extract the targets of the .../knows links, extract the ids from each and
   # assign those ids to the `friend_ids` attribute of the model.
   extract_links :friend_ids, coercion: ->(urls) { urls.map{|u| u.split("/").last} },
-  rel: "http://xmlns.com/foaf/0.1/knows"
+    rel: "http://xmlns.com/foaf/0.1/knows"
 
   # Extract the target of the up link and assign the full url to the up
-  # attribute of the model. Reports a problem if more than on link of this type
-  # is present.
+  # attribute of the model. Reports a problem if more than one link of this
+  # type is present.
   extract_link  :up
 
 
@@ -53,6 +53,61 @@ class UserHalInterpreter
     @cur_seq_num += 1
   end
 end
+```
+
+This interpreter will work for documents that look like the following
+
+```json
+{ "name": "Bob",
+  "address": {
+    "line1": "123 Main St",
+    "city":  "Denver"
+  },
+  "birthday": "1980-08-31",
+  "_links": {
+    "http://xmlns.com/foaf/0.1/knows": [
+      { "href": "http://example.com/alice" },
+      { "href": "http://example.com/mallory" }
+    ],
+    "up": { "href": "http://example.com/vips" }
+} }
+```
+
+or
+
+```json
+{ "_embedded": {
+    "item": [
+      { "name": "Bob",
+        "address": {
+          "line1": "123 Main St",
+          "city":  "Denver"
+        },
+        "birthday": "1980-08-31",
+        "_links": {
+          "http://xmlns.com/foaf/0.1/knows": [
+            { "href": "http://example.com/alice" },
+            { "href": "http://example.com/mallory" }
+          ],
+          "up": { "href": "http://example.com/vips" }
+      } },
+
+      { "name": "Alice",
+        "address": {
+          "line1": "123 Main St",
+          "city":  "Denver"
+        },
+        "birthday": "1979-02-16",
+        "_links": {
+          "http://xmlns.com/foaf/0.1/knows": [
+            { "href": "http://example.com/bob" },
+            { "href": "http://example.com/mallory" }
+          ],
+          "up": { "href": "http://example.com/vips" }
+      } }
+    ]
+} }
+
 ```
 
 #### Create
@@ -77,7 +132,7 @@ The `items` method returns an `Enumerable` of valid `item_class` objects.
 
 #### Update
 
-To update and existing record
+To update an existing record
 
 ```ruby
 
@@ -95,6 +150,9 @@ class Users < ApplicationController
   end
 end
 ```
+
+This approach with produce an error if the JSON contains more than one
+representation.
 
 ### Errors
 
