@@ -11,7 +11,9 @@ describe HalInterpretation do
       item_class test_item_class
       extract :name
       extract :latitude, from: "/geo/latitude"
-      extract :up, with: ->(hal_repr){hal_repr.related_hrefs("up").first}, from: "/_links/up"
+      extract_link  :up
+      extract_links :friend_ids, rel: "http://xmlns.com/foaf/0.1/knows",
+                    coercion: ->(urls) { urls.map{|u| u.split("/").last } }
       extract :bday, coercion: ->(val){ Time.parse(val) }
       extract :seq, with: ->(_) { next_seq_num }
 
@@ -37,7 +39,11 @@ describe HalInterpretation do
           "latitude": 39.1
         }
         ,"_links": {
-          "up": {"href": "/foo"}
+          "up": { "href": "/foo" },
+          "http://xmlns.com/foaf/0.1/knows": [
+            { "href": "http://example.com/bob" },
+            { "href": "http://example.com/alice" }
+          ]
         }
       }
     JSON
@@ -49,6 +55,8 @@ describe HalInterpretation do
     specify { expect(interpreter.item.up).to eq "/foo" }
     specify { expect(interpreter.item.bday).to eq Time.utc(2013,12,11,10,9,8) }
     specify { expect(interpreter.item.seq).to eq 1 }
+    specify { expect(interpreter.item.friend_ids).to eq ["bob", "alice"] }
+
     specify { expect(interpreter.problems).to be_empty }
 
     context "for update" do
@@ -65,6 +73,27 @@ describe HalInterpretation do
       specify { expect(interpreter.item.name).to eq "foo" }
       specify { expect(interpreter.item.latitude).to eq 39.1 }
       specify { expect(interpreter.item.bday).to eq Time.utc(2013,12,11,10,9,8) }
+    end
+
+    context "with embedded links" do
+      let(:json_doc) { <<-JSON }
+          { "name": "foo"
+            ,"bday": "2013-12-11T10:09:08Z"
+            ,"geo": {
+              "latitude": 39.1
+            }
+            ,"_embedded": {
+              "up": { "_links": { "self": { "href": "/foo" } } },
+              "http://xmlns.com/foaf/0.1/knows": [
+                { "_links": { "self":{ "href": "http://example.com/bob" } } },
+                { "_links": { "self":{ "href": "http://example.com/alice" } } }
+              ]
+            }
+          }
+        JSON
+
+      specify { expect(interpreter.item.up).to eq "/foo" }
+      specify { expect(interpreter.item.friend_ids).to eq ["bob", "alice"] }
     end
   end
 
@@ -115,22 +144,35 @@ describe HalInterpretation do
       }
     JSON
 
+    before do
+      test_item_class.class_eval do
+        validates :up, presence: true
+        validates :friend_ids, presence: { message: "only popular people allowed" }
+      end
+    end
+
     specify { expect{interpreter.items}
         .to raise_exception HalInterpretation::InvalidRepresentationError }
     context "raised error" do
       subject(:error) { interpreter.items rescue $! }
 
       specify { expect(error.problems)
-          .to include matching matching(%r(/geo/latitude\b)).and(match(/\binvalid value\b/i)) }
+          .to include matching(%r(/geo/latitude\b)).and(match(/\binvalid value\b/i)) }
       specify { expect(error.problems)
           .to include matching(%r(/name\b)).and(match(/\bblank\b/i))  }
     end
+
     specify { expect(interpreter.problems)
         .to include matching(%r(/name\b)).and(match(/\bblank\b/i))  }
     specify { expect(interpreter.problems)
         .to include matching(%r(/geo/latitude\b)).and(match(/\binvalid value\b/i))  }
     specify { expect(interpreter.problems)
         .to include matching(%r(/bday\b)).and(match(/\bno time\b/i))  }
+    specify { expect(interpreter.problems)
+              .to include matching(%r(/_links/up\b)).and(match(/\bblank\b/i)) }
+    specify { expect(interpreter.problems)
+              .to include matching(%r(/_links/http:~1~1xmlns.com~1foaf~10.1~1knows\b))
+                           .and(match(/\bpopular\b/i)) }
   end
 
   context "collection w/ invalid attributes" do
@@ -225,7 +267,7 @@ describe HalInterpretation do
   let(:test_item_class) { Class.new do
       include ActiveModel::Validations
 
-      attr_accessor :name, :latitude, :up, :bday, :seq, :hair
+      attr_accessor :name, :latitude, :up, :bday, :seq, :hair, :friend_ids
 
       def initialize
         yield self

@@ -17,10 +17,31 @@ class UserHalInterpreter
 
   item_class User
 
+  # Extract value of the name member of the JSON object and assign it to
+  # the `name` attribute of the model.
   extract :name
+
+  # Extract the value of the line1 member of the address member of the JSON
+  # object and assign it to the `address_line` attribute of the model.
   extract :address_line, from: "address/line1"
+
+  # Assign the `seq` attribute of the model a newly generated sequence number.
   extract :seq, with: ->(_hal_repr) { next_seq_num }
-  extract :birthday, coercion: ->(date_str) { Date.iso8601(date_str) } 
+
+  # Extract the birthday member of the JSON object, convert it to a ruby date
+  # and assign it to the `birthday` attribute of the model.
+  extract :birthday, coercion: ->(date_str) { Date.iso8601(date_str) }
+
+  # Extract the targets of the .../knows links, extract the ids from each and
+  # assign those ids to the `friend_ids` attribute of the model.
+  extract_links :friend_ids, coercion: ->(urls) { urls.map{|u| u.split("/").last} },
+  rel: "http://xmlns.com/foaf/0.1/knows"
+
+  # Extract the target of the up link and assign the full url to the up
+  # attribute of the model. Reports a problem if more than on link of this type
+  # is present.
+  extract_link  :up
+
 
   def initialize
     @cur_seq_num = 0
