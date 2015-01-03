@@ -41,6 +41,12 @@ module HalInterpretation
     @problems ||= interpreters.flat_map(&:problems)
   end
 
+  # returns true if the json interpreted was a collection (had
+  # embedded items) even if there was only one; otherwise false
+  def collection?
+    repr.has_related?("item")
+  end
+
   extend Forwardable
   def_delegators "self.class", :extractors, :extractor_for
 

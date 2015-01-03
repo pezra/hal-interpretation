@@ -59,6 +59,8 @@ describe HalInterpretation do
 
     specify { expect(interpreter.problems).to be_empty }
 
+    specify { expect(interpreter.collection?).to be false }
+
     context "for update" do
       let(:existing) { test_item_class.new do |it|
                          it.name = "foo"
@@ -127,6 +129,8 @@ describe HalInterpretation do
 
     specify { expect{interpreter.item}
               .to raise_error HalInterpretation::InvalidRepresentationError }
+
+    specify { expect(interpreter.collection?).to be true }
 
     matcher :item_named do |expected_name|
       match do |obj|
