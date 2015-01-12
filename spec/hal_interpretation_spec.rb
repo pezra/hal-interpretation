@@ -11,11 +11,12 @@ describe HalInterpretation do
       item_class test_item_class
       extract :name
       extract :latitude, from: "/geo/latitude"
+      extract :bday, coercion: ->(val){ Time.parse(val) }
+      extract :seq, with: ->(_) { next_seq_num }
       extract_link  :up
       extract_links :friend_ids, rel: "http://xmlns.com/foaf/0.1/knows",
                     coercion: ->(urls) { urls.map{|u| u.split("/").last } }
-      extract :bday, coercion: ->(val){ Time.parse(val) }
-      extract :seq, with: ->(_) { next_seq_num }
+      extract_link :archives_url_tmpl, rel: "archives"
 
       def initialize(*args)
         @cur_seq_num = 0
@@ -43,7 +44,11 @@ describe HalInterpretation do
           "http://xmlns.com/foaf/0.1/knows": [
             { "href": "http://example.com/bob" },
             { "href": "http://example.com/alice" }
-          ]
+          ],
+          "archives": {
+            "href": "http://example.com/old{?since,until}",
+            "templated": true
+          }
         }
       }
     JSON
@@ -56,6 +61,8 @@ describe HalInterpretation do
     specify { expect(interpreter.item.bday).to eq Time.utc(2013,12,11,10,9,8) }
     specify { expect(interpreter.item.seq).to eq 1 }
     specify { expect(interpreter.item.friend_ids).to eq ["bob", "alice"] }
+    specify { expect(interpreter.item.archives_url_tmpl)
+              .to eq "http://example.com/old{?since,until}" }
 
     specify { expect(interpreter.problems).to be_empty }
 
@@ -271,7 +278,8 @@ describe HalInterpretation do
   let(:test_item_class) { Class.new do
       include ActiveModel::Validations
 
-      attr_accessor :name, :latitude, :up, :bday, :seq, :hair, :friend_ids
+      attr_accessor :name, :latitude, :up, :bday, :seq, :hair, :friend_ids,
+                    :archives_url_tmpl
 
       def initialize
         yield self

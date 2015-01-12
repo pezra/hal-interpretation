@@ -106,8 +106,16 @@ module HalInterpretation
       rel = opts.fetch(:rel) { attr_name }.to_s
       path = "/_links/" + json_path_escape(rel)
 
+      stringify_href = ->(string_or_uri_tmpl) {
+        if string_or_uri_tmpl.respond_to? :pattern
+          string_or_uri_tmpl.pattern
+        else
+          string_or_uri_tmpl.to_str
+        end
+      }
+
       extract attr_name, from: path,
-              with: ->(r){ r.related_hrefs(rel){[]} },
+              with: ->(r){ r.raw_related_hrefs(rel){[]}.map &stringify_href },
               coercion: opts[:coercion]
     end
 
