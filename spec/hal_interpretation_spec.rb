@@ -6,6 +6,7 @@ require "rspec/collection_matchers"
 describe HalInterpretation do
   subject(:interpreter_class) {
     test_item_class = self.test_item_class
+
     Class.new do
       include HalInterpretation
       item_class test_item_class
@@ -17,6 +18,8 @@ describe HalInterpretation do
       extract_links :friend_ids, rel: "http://xmlns.com/foaf/0.1/knows",
                     coercion: ->(urls) { urls.map{|u| u.split("/").last } }
       extract_link :archives_url_tmpl, rel: "archives"
+      extract_repr :profile, rel: "http://xmlns.com/foaf/0.1/Person"
+      extract_reprs :cohorts, rel: "http://xmlns.com/foaf/0.1/knows"
 
       def initialize(*args)
         @cur_seq_num = 0
@@ -26,7 +29,8 @@ describe HalInterpretation do
       def next_seq_num
         @cur_seq_num += 1
       end
-    end }
+    end
+  }
 
   let(:interpreter) { interpreter_class.new_from_json(json_doc) }
 
@@ -41,6 +45,7 @@ describe HalInterpretation do
         }
         ,"_links": {
           "up": { "href": "/foo" },
+          "http://xmlns.com/foaf/0.1/Person": { "href": "http://example.com/foo" },
           "http://xmlns.com/foaf/0.1/knows": [
             { "href": "http://example.com/bob" },
             { "href": "http://example.com/alice" }
@@ -60,6 +65,8 @@ describe HalInterpretation do
     specify { expect(interpreter.item.up).to eq "/foo" }
     specify { expect(interpreter.item.bday).to eq Time.utc(2013,12,11,10,9,8) }
     specify { expect(interpreter.item.seq).to eq 1 }
+    specify { expect(interpreter.item.profile).to be_kind_of HalClient::Representation }
+    specify { expect(interpreter.item.cohorts).to be_kind_of HalClient::RepresentationSet }
     specify { expect(interpreter.item.friend_ids).to eq ["bob", "alice"] }
     specify { expect(interpreter.item.archives_url_tmpl)
               .to eq "http://example.com/old{?since,until}" }
@@ -93,6 +100,7 @@ describe HalInterpretation do
             }
             ,"_embedded": {
               "up": { "_links": { "self": { "href": "/foo" } } },
+              "http://xmlns.com/foaf/0.1/Person": { "href": "http://example.com/foo" },
               "http://xmlns.com/foaf/0.1/knows": [
                 { "_links": { "self":{ "href": "http://example.com/bob" } } },
                 { "_links": { "self":{ "href": "http://example.com/alice" } } }
@@ -103,6 +111,8 @@ describe HalInterpretation do
 
       specify { expect(interpreter.item.up).to eq "/foo" }
       specify { expect(interpreter.item.friend_ids).to eq ["bob", "alice"] }
+      specify { expect(interpreter.item.profile).to be_kind_of HalClient::Representation }
+      specify { expect(interpreter.item.cohorts).to be_kind_of HalClient::RepresentationSet }
     end
   end
 
@@ -114,14 +124,20 @@ describe HalInterpretation do
                       ,"geo": {
                         "latitude": 39.1
                       }
-                      ,"_links": { "up": {"href": "/foo"} }
+                      ,"_links": {
+                        "http://xmlns.com/foaf/0.1/Person": { "href": "http://example.com/foo" },
+                        "up": {"href": "/foo"}
+                      }
                     }
                     ,{ "name": "bar"
                       ,"bday": "2013-12-11T10:09:08Z"
                       ,"geo": {
                         "latitude": 39.2
                       }
-                      ,"_links": { "up": {"href": "/bar"} }
+                      ,"_links": {
+                         "http://xmlns.com/foaf/0.1/Person": { "href": "http://example.com/bar" },
+                         "up": {"href": "/bar"}
+                      }
                     }]
         }
       }
@@ -133,6 +149,8 @@ describe HalInterpretation do
     specify { expect(interpreter.items).to include item_named "bar" }
     specify { expect(interpreter.items[0].seq).to eq 1 }
     specify { expect(interpreter.items[1].seq).to eq 2 }
+    specify { expect(interpreter.items[0].profile).to be_kind_of HalClient::Representation }
+    specify { expect(interpreter.items[1].profile).to be_kind_of HalClient::Representation }
 
     specify { expect{interpreter.item}
               .to raise_error HalInterpretation::InvalidRepresentationError }
@@ -279,7 +297,7 @@ describe HalInterpretation do
       include ActiveModel::Validations
 
       attr_accessor :name, :latitude, :up, :bday, :seq, :hair, :friend_ids,
-                    :archives_url_tmpl
+                    :archives_url_tmpl, :profile, :cohorts
 
       def initialize
         yield self

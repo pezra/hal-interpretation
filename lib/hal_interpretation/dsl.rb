@@ -119,8 +119,85 @@ module HalInterpretation
               coercion: opts[:coercion]
     end
 
+    # Declare that an attribute should be extracted from the HAL
+    # document's links (or embeddeds) as a representation.
+    #
+    # attr_name - name of the attribute on the model to extract to as
+    # a representation
+    #
+    # opts - hash of named arguments
+    #
+    #  :rel - rel of link to extract. Default: attr_name
+    #
+    #  :coercion - callable with which the raw URL should transformed
+    #  before being stored in the model
+    #
+    # Examples
+    #
+    #     extract_repr :author,
+    #                   rel: "http://xmlns.com/foaf/0.1/Person"
+    #
+    # extracts the targets of the `.../Person` link and stores the
+    # corresponding HAL representation object in the `author`
+    # attribute of the model.
+    #
+    #     extract_repr :author, rel: "http://xmlns.com/foaf/0.1/Person",
+    #                   coercion: ->(person_repr) {
+    #                     MyInterpretation.new(person_repr)
+    #                   }
+    #
+    # looks up the author pointed to by the rel and uses coercion to
+    # initialize a custom object stored on the model that uses the
+    # representation
+    def extract_repr(attr_name, opts={})
+      extract_reprs_with_blk(attr_name, opts) {|r, rel| r.related(rel){[]}.first }
+    end
+
+    # Declare that an attribute should be extracted from the HAL
+    # document's links (or embeddeds) as a representation set.
+    #
+    # attr_name - name of the attribute on the model to extract to as
+    # a representation set
+    #
+    # opts - hash of named arguments
+    #
+    #  :rel - rel of link to extract. Default: attr_name
+    #
+    #  :coercion - callable with which the raw URL should transformed
+    #  before being stored in the model
+    #
+    # Examples
+    #
+    #     extract_reprs :authors,
+    #                    rel: "http://exampe.com/authors"
+    #
+    # extracts the targets of the `.../authors` link and stores the
+    # corresponding HAL representation set object in the `authors`
+    # attribute of the model.
+    #
+    #     extract_reprs :authors, rel: "http://example.com/authors",
+    #       coercion: ->(person_repr_set) {
+    #         person_repr_set.map {|repr| MyInterpretation.new(repr)}
+    #       }
+    #
+    # looks up the authors pointed to by the rel and uses coercion to
+    # initialize an array of custom objects stored on the model that
+    # uses the representation set
+    def extract_reprs(attr_name, opts={})
+      extract_reprs_with_blk(attr_name, opts) {|r, rel| r.related(rel){[]} }
+    end
+
 
     protected
+
+    def extract_reprs_with_blk(attr_name, opts={}, &blk)
+      rel = opts.fetch(:rel) { attr_name }.to_s
+      path = "/_links/" + json_path_escape(rel)
+
+      extract attr_name, from: path,
+                         with: ->(r) { blk.call(r, rel) },
+                         coercion: opts[:coercion]
+    end
 
     def json_path_escape(rel)
       rel.gsub('~', '~0').gsub('/', '~1')
