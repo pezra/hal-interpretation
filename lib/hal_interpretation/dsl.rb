@@ -149,8 +149,8 @@ module HalInterpretation
     # looks up the author pointed to by the rel and uses coercion to
     # initialize a custom object stored on the model that uses the
     # representation
-    def extract_repr(attr_name, opts={})
-      extract_reprs_with_blk(attr_name, opts) {|r, rel| r.related(rel){[]}.first }
+    def extract_related(attr_name, opts={})
+      extract_related_with_blk(attr_name, opts) {|r, rel| r.related(rel){[]}.first }
     end
 
     # Declare that an attribute should be extracted from the HAL
@@ -183,14 +183,14 @@ module HalInterpretation
     # looks up the authors pointed to by the rel and uses coercion to
     # initialize an array of custom objects stored on the model that
     # uses the representation set
-    def extract_reprs(attr_name, opts={})
-      extract_reprs_with_blk(attr_name, opts) {|r, rel| r.related(rel){[]} }
+    def extract_relateds(attr_name, opts={})
+      extract_related_with_blk(attr_name, opts) {|r, rel| r.related(rel){[]} }
     end
 
 
     protected
 
-    def extract_reprs_with_blk(attr_name, opts={}, &blk)
+    def extract_related_with_blk(attr_name, opts={}, &blk)
       rel = opts.fetch(:rel) { attr_name }.to_s
       path = "/_links/" + json_path_escape(rel)
 

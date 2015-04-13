@@ -18,8 +18,8 @@ describe HalInterpretation do
       extract_links :friend_ids, rel: "http://xmlns.com/foaf/0.1/knows",
                     coercion: ->(urls) { urls.map{|u| u.split("/").last } }
       extract_link :archives_url_tmpl, rel: "archives"
-      extract_repr :profile, rel: "http://xmlns.com/foaf/0.1/Person"
-      extract_reprs :cohorts, rel: "http://xmlns.com/foaf/0.1/knows"
+      extract_related :profile, rel: "http://xmlns.com/foaf/0.1/Person"
+      extract_relateds :cohorts, rel: "http://xmlns.com/foaf/0.1/knows"
 
       def initialize(*args)
         @cur_seq_num = 0
