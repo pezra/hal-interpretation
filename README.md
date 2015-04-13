@@ -42,6 +42,19 @@ class UserHalInterpreter
   # type is present.
   extract_link  :up
 
+  # Extract the target of the rel link and assign a HAL representation to the person
+  # attribute of the model. Reports a problem if more than one link of this
+  # type is present.
+  extract_related  :profile, rel: "http://xmlns.com/foaf/0.1/Person",
+    coercion: ->(profile_repr) { CustomInterpretation.new(profile_repr) }
+
+  # Extract the target of the rel link and assign a HAL representation
+  # set to the cohorts attribute of the model. Reports a problem if
+  # more than one link of this type is present.
+  extract_relateds  :cohorts, rel: "http://xmlns.com/foaf/0.1/knows",
+    coercion: ->(cohort_repr_set) {
+      cohort_repr_set.map {|repr| CustomInterpretation.new(repr) }
+    }
 
   def initialize
     @cur_seq_num = 0
@@ -65,6 +78,7 @@ This interpreter will work for documents that look like the following
   },
   "birthday": "1980-08-31",
   "_links": {
+    "http://xmlns.com/foaf/0.1/Person": { "href": "http://example.com/bob" },
     "http://xmlns.com/foaf/0.1/knows": [
       { "href": "http://example.com/alice" },
       { "href": "http://example.com/mallory" }
@@ -85,6 +99,7 @@ or
         },
         "birthday": "1980-08-31",
         "_links": {
+          "http://xmlns.com/foaf/0.1/Person": { "href": "http://example.com/bob" },
           "http://xmlns.com/foaf/0.1/knows": [
             { "href": "http://example.com/alice" },
             { "href": "http://example.com/mallory" }
@@ -99,6 +114,7 @@ or
         },
         "birthday": "1979-02-16",
         "_links": {
+          "http://xmlns.com/foaf/0.1/Person": { "href": "http://example.com/alice },
           "http://xmlns.com/foaf/0.1/knows": [
             { "href": "http://example.com/bob" },
             { "href": "http://example.com/mallory" }
