@@ -299,10 +299,6 @@ describe HalInterpretation do
       attr_accessor :name, :latitude, :up, :bday, :seq, :hair, :friend_ids,
                     :archives_url_tmpl, :profile, :cohorts
 
-      def initialize
-        yield self
-      end
-
       def latitude=(lat)
         @latitude = if !lat.nil?
                       Float(lat)
