@@ -57,7 +57,7 @@ module HalInterpretation
       yield item_to_update
       item_to_update
     else
-      item_class.new(&blk)
+      item_class.new.tap(&blk)
     end
   end
 
