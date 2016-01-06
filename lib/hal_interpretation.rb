@@ -66,9 +66,16 @@ module HalInterpretation
   # opts
   #   :location - The json path of `a_representation` in the
   #     complete document
+  #
+  # optionally implement `#handle_initialization_opts` for custom option parsing
   def initialize(a_representation, opts)
     @repr = a_representation
     @location = opts.fetch(:location) { raise ArgumentError, "location is required" }
+    handle_initialization_opts(opts)
+  end
+
+  # allows custom setting of options on initialization
+  def handle_initialization_opts(opts)
   end
 
   attr_reader :repr, :location
@@ -104,9 +111,9 @@ module HalInterpretation
     #
     # Raises HalInterpretation::InvalidRepresentationError if the
     #   provided JSON document is not parseable
-    def new_from_json(json)
-      self.new HalClient::Representation.new(parsed_json: MultiJson.load(json)),
-               location: "/"
+    def new_from_json(json, opts = {})
+      repr = HalClient::Representation.new(parsed_json: MultiJson.load(json))
+      self.new repr, opts.merge(location: "/")
 
     rescue MultiJson::ParseError => err
       fail InvalidRepresentationError, "Parse error: " + err.message
