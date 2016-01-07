@@ -14,10 +14,11 @@ describe HalInterpretation do
       extract :latitude, from: "/geo/latitude"
       extract :bday, coercion: ->(val){ Time.parse(val) }
       extract :seq, with: ->(_) { next_seq_num }
-      extract_link  :up
+      extract_link  :up, rel: "up", coercion: ->(url) { @override_up || url }
       extract_links :friend_ids, rel: "http://xmlns.com/foaf/0.1/knows",
                     coercion: ->(urls) { urls.map{|u| u.split("/").last } }
       extract_link :archives_url_tmpl, rel: "archives"
+
       extract_related :profile, rel: "http://xmlns.com/foaf/0.1/Person"
       extract_relateds :cohorts, rel: "http://xmlns.com/foaf/0.1/knows"
 
@@ -28,6 +29,10 @@ describe HalInterpretation do
 
       def next_seq_num
         @cur_seq_num += 1
+      end
+
+      def handle_initialization_opts(opts)
+        @override_up = opts.fetch(:override_up, nil)
       end
     end
   }
@@ -114,6 +119,36 @@ describe HalInterpretation do
       specify { expect(interpreter.item.profile).to be_kind_of HalClient::Representation }
       specify { expect(interpreter.item.cohorts).to be_kind_of HalClient::RepresentationSet }
     end
+  end
+
+  context "with initialization options" do
+    let(:json_doc_with_links) { <<-JSON }
+          { "name": "foo"
+            ,"bday": "2013-12-11T10:09:08Z"
+            ,"geo": {
+              "latitude": 39.1
+            }
+            ,"_links": {
+              "up": { "href": "/foo" }
+            }
+          }
+    JSON
+
+    let(:json_doc_without_links) { <<-JSON }
+          { "name": "foo"
+            ,"bday": "2013-12-11T10:09:08Z"
+            ,"geo": {
+              "latitude": 39.1
+            }
+          }
+    JSON
+
+    let(:opts) { { override_up: "/new_parent"} }
+    let(:interpreter_with_links) { interpreter_class.new_from_json(json_doc_with_links, opts) }
+    let(:interpreter_without_links) { interpreter_class.new_from_json(json_doc_without_links, opts) }
+
+    specify { expect(interpreter_with_links.item.up).to eq("/new_parent") }
+    specify { expect(interpreter_without_links.item.up).to eq("/new_parent") }
   end
 
   context "valid collection" do
