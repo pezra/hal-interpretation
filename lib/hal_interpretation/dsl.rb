@@ -134,14 +134,14 @@ module HalInterpretation
     #
     # Examples
     #
-    #     extract_repr :author,
+    #     extract_related :author,
     #                   rel: "http://xmlns.com/foaf/0.1/Person"
     #
     # extracts the targets of the `.../Person` link and stores the
     # corresponding HAL representation object in the `author`
     # attribute of the model.
     #
-    #     extract_repr :author, rel: "http://xmlns.com/foaf/0.1/Person",
+    #     extract_related :author, rel: "http://xmlns.com/foaf/0.1/Person",
     #                   coercion: ->(person_repr) {
     #                     MyInterpretation.new(person_repr)
     #                   }
@@ -168,14 +168,14 @@ module HalInterpretation
     #
     # Examples
     #
-    #     extract_reprs :authors,
+    #     extract_relateds :authors,
     #                    rel: "http://exampe.com/authors"
     #
     # extracts the targets of the `.../authors` link and stores the
     # corresponding HAL representation set object in the `authors`
     # attribute of the model.
     #
-    #     extract_reprs :authors, rel: "http://example.com/authors",
+    #     extract_relateds :authors, rel: "http://example.com/authors",
     #       coercion: ->(person_repr_set) {
     #         person_repr_set.map {|repr| MyInterpretation.new(repr)}
     #       }
