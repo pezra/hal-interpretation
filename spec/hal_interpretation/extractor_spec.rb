@@ -72,6 +72,24 @@ describe HalInterpretation::Extractor do
     specify { expect(target.age).to eq 1 }
   end
 
+  context "boolean attr true" do
+    subject(:extractor) { described_class.new(attr: "likes_chocolate",
+                                              location: "/likesChocolate") }
+
+    before do extractor.extract(from: source, to: target) end
+
+    specify { expect(target.likes_chocolate).to eq true }
+  end
+
+  context "boolean attr false" do
+    subject(:extractor) { described_class.new(attr: "likes_anchovies",
+                                              location: "/likesAnchovies") }
+
+    before do extractor.extract(from: source, to: target) end
+
+    specify { expect(target.likes_anchovies).to eq false }
+  end
+
   context "missing attr" do
     subject(:extractor) { described_class.new(attr: "seq") }
 
@@ -81,11 +99,20 @@ describe HalInterpretation::Extractor do
   end
 
 
-  let(:target) { Struct.new(:first_name, :bday, :parent, :seq, :age).new }
+  let(:target) { Struct.new(:first_name,
+                            :bday,
+                            :parent,
+                            :seq,
+                            :age,
+                            :likes_chocolate,
+                            :likes_anchovies).new }
+
   let(:source) { HalClient::Representation.new(parsed_json: {
                                                  "age" => 1,
                                                  "firstName" => "Alice",
                                                  "bday" => "2013-10-10T12:13:14Z",
+                                                 "likesChocolate" => true,
+                                                 "likesAnchovies" => false,
                                                  "_links" => {
                                                    "up" => { "href" => "http://foo" }}}) }
 end
