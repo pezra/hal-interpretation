@@ -37,7 +37,7 @@ module HalInterpretation
       context = opts.fetch(:context, self)
 
       raw_val = context.instance_exec from, &fetcher
-      return [] unless raw_val
+      return [] if raw_val.nil?
 
       val = context.instance_exec raw_val, &value_coercion
 
